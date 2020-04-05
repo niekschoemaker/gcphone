@@ -1,0 +1,33 @@
+{
+    "Lua.diagnostics.globals": [
+        "AddEventHandler",
+        "RegisterNetEvent",
+        "SetNuiFocus",
+        "RegisterNUICallback",
+        "SendNUIMessage",
+        "TriggerServerEvent",
+        "GetVehicleMaxNumberOfPassengers",
+        "GetVehiclePedIsIn",
+        "GetPlayerPed",
+        "Citizen",
+        "GetPlayerServerId",
+        "NetworkGetPlayerIndexFromPed",
+        "MySQL",
+        "TriggerClientEvent",
+        "json",
+        "ClearPedTasks",
+        "GetEntityCoords",
+        "SetEntityCoords",
+        "GetRandomIntInRange",
+        "GetVehicleNumberPlateText",
+        "DoesEntityExist",
+        "GetVehicleNumberOfPassengers",
+        "IsVehicleSeatFree",
+        "Config",
+        "GetCurrentResourceName",
+        "_U",
+        "PlayerPedId",
+        "GetDisplayNameFromVehicleModel",
+        "GetLabelText"
+    ]
+}

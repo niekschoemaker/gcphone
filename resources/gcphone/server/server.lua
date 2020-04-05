@@ -196,8 +196,13 @@ AddEventHandler('gcPhone:_internalAddMessage', function(transmitter, receiver, m
 end)
 
 function _internalAddMessage(transmitter, receiver, message, owner)
-    local Query = "INSERT INTO phone_messages (`transmitter`, `receiver`,`message`, `isRead`,`owner`) VALUES(@transmitter, @receiver, @message, @isRead, @owner);"
-    local Query2 = 'SELECT * from phone_messages WHERE `id` = @id;'
+    local Query =
+          "INSERT INTO phone_messages (`transmitter`, `receiver`,`message`, `isRead`,`owner`) "
+        .."VALUES(@transmitter, @receiver, @message, @isRead, @owner);"
+    local Query2 =
+          'SELECT * '
+        ..'FROM phone_messages '
+        ..'WHERE `id` = @id;'
 	local Parameters = {
         ['@transmitter'] = transmitter,
         ['@receiver'] = receiver,

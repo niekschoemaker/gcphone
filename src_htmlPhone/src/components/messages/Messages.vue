@@ -17,7 +17,7 @@
               <img v-if="isSMSImage(mess)" @click.stop="onActionMessage(mess)" class="sms-img" :src="mess.message">
               <span v-else @click.stop="onActionMessage(mess)" >{{mess.message}}</span>
                 
-                <span @click.stop="onActionMessage(mess)" ><timeago class="sms_time" :since='mess.time' :auto-update="20" :style="colorSmsOwner[mess.owner]"></timeago></span>
+                <span @click.stop="onActionMessage(mess)" ><timeago class="sms_time" :since='mess.time' :auto-update="1" :style="colorSmsOwner[mess.owner]"></timeago></span>
             </span>
         </div>
     </div>

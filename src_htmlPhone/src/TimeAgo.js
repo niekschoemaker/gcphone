@@ -27,17 +27,27 @@ function formatTime(time) {
 
 const defaultLocales = {
   'fr_FR': [
-    "à l'instant",
-    ["il y a %s seconde", "il y a %s secondes"],
-    ["il y a %s minute",  "il y a %s minutes"],
-    ["il y a %s heure",   "il y a %s heures"],
-    ["il y a %s jour",    "il y a %s jours"],
-    ["il y a %s semaine", "il y a %s semaines"],
-    ["il y a %s mois",    "il y a %s mois"],
-    ["il y a %s an",      "il y a %s ans"]
+      "zojuist",
+      ["%s seconde geleden", "%s seconden geleden"],
+      ["%s minuut geleden",  "%s minuten geleden"],
+      ["%s uur geleden",   "%s uur geleden"],
+      ["%s dag geleden",    "%s dagen geleden"],
+      ["%s week geleden", "%s weken geleden"],
+      ["%s maand geleden",    "%s maanden geleden"],
+      ["%s jaar geleden",      "%s jaren geleden"]
+  ],
+  'nl_NL': [
+    "zojuist",
+    ["%s seconde geleden", "%s seconden geleden"],
+    ["%s minuut geleden",  "%s minuten geleden"],
+    ["%s uur geleden",   "%s uur geleden"],
+    ["%s dag geleden",    "%s dagen geleden"],
+    ["%s week geleden", "%s weken geleden"],
+    ["%s maand geleden",    "%s maanden geleden"],
+    ["%s jaar geleden",      "%s jaren geleden"]
   ]
 }
-export default function install(Vue, { name = 'timeago', locale = 'fr_FR', locales = defaultLocales} = {} ) {
+export default function install(Vue, { name = 'timeago', locale = 'nl_NL', locales = defaultLocales} = {} ) {
 
   if (!locales || Object.keys(locales).length === 0) {
     throw new TypeError('Expected locales to have at least one locale.')
@@ -65,7 +75,7 @@ export default function install(Vue, { name = 'timeago', locale = 'fr_FR', local
             return locale
           }
         }
-        return locales['fr_FR']
+        return locales['nl_NL']
       },
       sinceTime() {
         return new Date(this.since).getTime()
@@ -161,7 +171,7 @@ export default function install(Vue, { name = 'timeago', locale = 'fr_FR', local
     }
   }
 
-  VueTimeago.locale = 'fr_FR'
+  VueTimeago.locale = 'nl_NL'
   VueTimeago.locales = {}
   
   Vue.prototype.$timeago = {
