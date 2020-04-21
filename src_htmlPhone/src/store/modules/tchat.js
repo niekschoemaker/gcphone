@@ -35,6 +35,7 @@ const actions = {
         TchatAudio.pause()
         TchatAudio = null
       }
+      PhoneAPI.tchatNotification(message.channel)
       TchatAudio = new Audio('/html/static/sound/tchatNotification.ogg')
       TchatAudio.volume = getters.volume
       TchatAudio.play()

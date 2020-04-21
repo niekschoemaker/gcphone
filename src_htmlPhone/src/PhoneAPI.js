@@ -155,6 +155,9 @@ class PhoneAPI {
   async tchatSendMessage (channel, message) {
     this.post('tchat_addMessage', { channel, message })
   }
+  async tchatNotification (channel) {
+    this.post('tchat_notify', { channel })
+  }
 
   // ==========================================================================
   //  Gestion des events
