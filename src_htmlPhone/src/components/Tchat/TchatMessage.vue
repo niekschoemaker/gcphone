@@ -1,14 +1,18 @@
 <template>
   <div class="phone_app">
     <PhoneTitle :title="channelName" backgroundColor="#090f20" @back="onQuit"/>
+    <div class="img-fullscreen" v-if="imgZoom !== undefined" @click.stop="imgZoom = undefined">
+      <img :src="imgZoom" />
+    </div>
     <div class="phone_content">
       <div class="elements" ref="elementsDiv">
-          <div class="element" v-for='(elem) in tchatMessages' 
-            v-bind:key="elem.id"
+          <div class="element" v-for='(elem, key) in tchatMessages' 
+            v-bind:key="elem.id" v-bind:class="{ select: key === selectMessage}"
             >
             <div class="time">{{formatTime(elem.time)}}</div>
-            <div class="message">
-              {{elem.message}}
+            <div class="message" v-bind:class="{ select: key === selectMessage}">
+              <img v-if="isSMSImage(elem)" class="sms-img" :src="elem.message">
+              <span v-else>{{elem.message}}</span>
             </div>
           </div>
       </div>
@@ -24,6 +28,7 @@
 <script>
 import { mapGetters, mapActions } from 'vuex'
 import PhoneTitle from './../PhoneTitle'
+import Modal from '@/components/Modal/index.js'
 
 export default {
   components: { PhoneTitle },
@@ -31,11 +36,13 @@ export default {
     return {
       message: '',
       channel: '',
-      currentSelect: 0
+      selectMessage: -1,
+      imgZoom: undefined,
+      ignoreControls: false
     }
   },
   computed: {
-    ...mapGetters(['tchatMessages', 'tchatCurrentChannel', 'useMouse']),
+    ...mapGetters(['IntlString', 'tchatMessages', 'tchatCurrentChannel', 'useMouse']),
     channelName () {
       return '# ' + this.channel
     }
@@ -61,23 +68,88 @@ export default {
       })
     },
     onUp () {
-      const c = this.$refs.elementsDiv
-      c.scrollTop = c.scrollTop - 120
+      if (this.ignoreControls === true) return
+      if (this.selectMessage === -1) {
+        this.selectMessage = this.tchatMessages.length - 1
+      } else {
+        this.selectMessage = this.selectMessage === 0 ? 0 : this.selectMessage - 1
+      }
+      this.scrollIntoViewIfNeeded()
     },
     onDown () {
-      const c = this.$refs.elementsDiv
-      c.scrollTop = c.scrollTop + 120
+      if (this.ignoreControls === true) return
+      if (this.selectMessage === -1) {
+        this.selectMessage = this.tchatMessages.length - 1
+      } else {
+        this.selectMessage = this.selectMessage === this.tchatMessages.length - 1 ? this.selectMessage : this.selectMessage + 1
+      }
+      this.scrollIntoViewIfNeeded()
     },
     async onEnter () {
-      const rep = await this.$phoneAPI.getReponseText()
-      if (rep !== undefined && rep.text !== undefined) {
-        const message = rep.text.trim()
-        if (message.length !== 0) {
+      if (this.ignoreControls === true) return
+
+      if (this.selectMessage !== -1) {
+        this.onActionMessage(this.tchatMessages[this.selectMessage])
+      } else {
+        const rep = await this.$phoneAPI.getReponseText()
+        let message = rep.text.trim()
+        if (message !== '' && message.length !== 0) {
           this.tchatSendMessage({
             channel: this.channel,
             message
           })
         }
+      }
+    },
+    async onActionMessage (message) {
+      try {
+        let isGPS = /(-?\d+(\.\d+)?), (-?\d+(\.\d+)?)/.test(message.message)
+        let isImage = this.isSMSImage(message)
+        if (isGPS) {
+          let val = message.message.match(/(-?\d+(\.\d+)?), (-?\d+(\.\d+)?)/)
+          this.$phoneAPI.setGPS(val[1], val[3])
+          return
+        }
+        if (isImage) {
+          this.imgZoom = message.message
+          return
+        }
+      } catch (e) {
+        console.log(e)
+      } finally {
+        this.ignoreControls = false
+        this.selectMessage = -1
+      }
+    },
+    async showOptions () {
+      try {
+        this.ignoreControls = true
+        let choix = [
+          {id: 1, title: this.IntlString('APP_MESSAGE_SEND_GPS'), icons: 'fa-location-arrow'},
+          {id: 2, title: this.IntlString('APP_MESSAGE_SEND_PHOTO'), icons: 'fa-picture-o'},
+          {id: -1, title: this.IntlString('CANCEL'), icons: 'fa-undo'}
+        ]
+        const data = await Modal.CreateModal({ choix })
+        if (data.id === 1) {
+          this.tchatSendMessage({
+            channel: this.channel,
+            message: '%pos%'
+          })
+        }
+        if (data.id === 2) {
+          const { url } = await this.$phoneAPI.takePhoto()
+          if (url !== null && url !== undefined) {
+            this.tchatSendMessage({
+              channel: this.channel,
+              message: url
+            })
+          }
+        }
+        this.ignoreControls = false
+      } catch (e) {
+        console.log(e)
+      } finally {
+        this.ignoreControls = false
       }
     },
     sendMessage () {
@@ -91,8 +163,17 @@ export default {
       }
     },
     onBack () {
+      if (this.imgZoom !== undefined) {
+        this.imgZoom = undefined
+        return
+      }
+      if (this.ignoreControls === true) return
       if (this.useMouse === true && document.activeElement.tagName !== 'BODY') return
-      this.onQuit()
+      if (this.selectMessage !== -1) {
+        this.selectMessage = -1
+      } else {
+        this.onQuit()
+      }
     },
     onQuit () {
       this.$router.push({ name: 'tchat.channel' })
@@ -100,6 +181,15 @@ export default {
     formatTime (time) {
       const d = new Date(time)
       return d.toLocaleTimeString()
+    },
+    isSMSImage (mess) {
+      return /^https?:\/\/.*\.(png|jpg|jpeg|gif)/.test(mess.message)
+    },
+    onRight: function () {
+      if (this.ignoreControls === true) return
+      if (this.selectMessage === -1) {
+        this.showOptions()
+      }
     }
   },
   created () {
@@ -107,8 +197,9 @@ export default {
       this.$bus.$on('keyUpArrowDown', this.onDown)
       this.$bus.$on('keyUpArrowUp', this.onUp)
       this.$bus.$on('keyUpEnter', this.onEnter)
+      this.$bus.$on('keyUpArrowRight', this.onRight)
     } else {
-      this.currentSelect = -1
+      this.selectMessage = -1
     }
     this.$bus.$on('keyUpBackspace', this.onBack)
     this.setChannel(this.$route.params.channel)
@@ -122,6 +213,7 @@ export default {
     this.$bus.$off('keyUpArrowDown', this.onDown)
     this.$bus.$off('keyUpArrowUp', this.onUp)
     this.$bus.$off('keyUpEnter', this.onEnter)
+    this.$bus.$off('keyUpArrowRight', this.onRight)
     this.$bus.$off('keyUpBackspace', this.onBack)
   }
 }
@@ -144,6 +236,7 @@ export default {
   flex: 0 0 auto;
   width: 100%;
   display: flex;
+  max-width: 100%;
   /* margin: 9px 12px;
   line-height: 18px;
   font-size: 18px;
@@ -151,6 +244,33 @@ export default {
   
   flex-direction: row;
   height: 60px; */
+}
+
+.img-fullscreen {
+  position: fixed;
+  z-index: 999999;
+  background-color: rgba(20, 20, 20, 0.8);
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.img-fullscreen img {
+  display: flex;
+  max-width: 90vw;
+  max-height: 95vh;
+}
+
+.sms-img{
+  width: 100%;
+  height: auto;
+}
+
+.element.select, .element:hover {
+  background-color: rgb(0, 0, 0) !important;
 }
 
 .time{

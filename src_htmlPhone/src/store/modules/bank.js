@@ -1,3 +1,5 @@
+import PhoneAPI from './../../PhoneAPI'
+
 const state = {
   bankAmont: '0'
 }
@@ -7,6 +9,9 @@ const getters = {
 }
 
 const actions = {
+  sendpara ({ state }, { firstname, lastname, amount }) {
+    PhoneAPI.callEvent('gcphone:bankTransfer', {firstname, lastname, amount})
+  }
 }
 
 const mutations = {

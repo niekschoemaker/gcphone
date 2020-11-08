@@ -22,9 +22,9 @@
     "#78909C"
   ],
 
-  "useFormatNumberFrance": true,
+  "useFormatNumberFrance": false,
 
-  "useWebRTCVocal": true,
+  "useWebRTCVocal": false,
   "RTCConfig": {
     "iceServers": [{
       "urls": ["turn:tdafivem.nl"],
@@ -35,8 +35,8 @@
 
   "//": "REQUIRE https://github.com/citizenfx/screenshot-basic or set false",
   "enableTakePhoto": true,
-  "fileUploadService_Url": "https://wew.wtf/upload.php",
-  "fileUploadService_Field": "files[]",
+  "fileUploadService_Url": "https://api.imgur.com/3/image",
+  "fileUploadService_Field": "image",
 
   "background": {
     "Calvin & Hobbes": "back001.jpg",
@@ -311,6 +311,7 @@
       "APP_CONTACT_TITLE": "contacten details",
       "APP_CONTACT_NEW": "Nieuw contact",
       "APP_CONTACT_EDIT": "Wijzig contact",
+      "APP_CONTACT_BLOCK": "Blokkeer contact",
       "APP_CONTACT_SAVE": "Opslaan",
       "APP_CONTACT_CANCEL": "Annuleren",
       "APP_CONTACT_DELETE": "Verwijderen",
@@ -332,7 +333,7 @@
       "APP_MESSAGE_MESS_NUMBER": "Nummer",
       "APP_MESSAGE_MESS_SMS": "SMS",
       "APP_MESSAGE_MESS_CALL": "Bellen",
-      "APP_MESSAGe_MESS_COPY": "Sla nummer op",
+      "APP_MESSAGE_MESS_COPY": "Sla nummer op",
       "APP_DARKTCHAT_TITLE": "Deep Web",
       "APP_DARKTCHAT_NEW_CHANNEL": "Voeg een kanaal toe",
       "APP_DARKTCHAT_DELETE_CHANNEL": "Verwijder een kanaal",
@@ -413,11 +414,15 @@
       "APP_PHONE_MENU_RECENTS": "Newest",
       "APP_PHONE_MENU_CONTACTS": "contacts",
       "APP_PHONE_ENTER_NUMBER": "Enter a number",
-      "APP_BANK_TITLE": "bench",
+      "APP_BANK_TITLE_BALANCE": "Balance",
+      "APP_BANK_BUTTON_TRANSFER": "Transfer",
+      "APP_BANK_BUTTON_CANCEL": "Cancel",
+      "APP_BANK_TITLE": "bank",
       "APP_BOURSE_TITLE": "stock exchange",
       "APP_CONTACT_TITLE": "contact details",
       "APP_CONTACT_NEW": "New contact",
       "APP_CONTACT_EDIT": "Change contact",
+      "APP_CONTACT_BLOCK": "Block contact",
       "APP_CONTACT_SAVE": "registration",
       "APP_CONTACT_CANCEL": "abort",
       "APP_CONTACT_DELETE": "Delete",
@@ -519,11 +524,15 @@
       "APP_PHONE_NUMBER_HIDDEN": "Nummer verborgen",
       "APP_PHONE_NUMBER_UNKNOWN": "onbekend",
       "APP_PHONE_CALL_IGNORE": "Negeer",
+      "APP_BANK_TITLE_BALANCE": "Balans",
+      "APP_BANK_BUTTON_TRANSFER": "Overschrijven",
+      "APP_BANK_BUTTON_CANCEL": "Annuleren",
       "APP_BANK_TITLE": "Bank",
       "APP_BOURSE_TITLE": "Aandelen markt",
       "APP_CONTACT_TITLE": "contacten details",
       "APP_CONTACT_NEW": "Nieuw contact",
       "APP_CONTACT_EDIT": "Wijzig contact",
+      "APP_CONTACT_BLOCK": "Blokkeer contact",
       "APP_CONTACT_SAVE": "Opslaan",
       "APP_CONTACT_CANCEL": "Annuleren",
       "APP_CONTACT_DELETE": "Verwijderen",
@@ -545,7 +554,8 @@
       "APP_MESSAGE_MESS_NUMBER": "Nummer",
       "APP_MESSAGE_MESS_SMS": "SMS",
       "APP_MESSAGE_MESS_CALL": "Bellen",
-      "APP_MESSAGe_MESS_COPY": "Sla nummer op",
+      "APP_MESSAGE_MESS_COPY": "Sla nummer op",
+      "APP_MESSAGE_SERVICE": "Markeer als behandeld",
       "APP_DARKTCHAT_TITLE": "Deep Web",
       "APP_DARKTCHAT_NEW_CHANNEL": "Voeg een kanaal toe",
       "APP_DARKTCHAT_DELETE_CHANNEL": "Verwijder een kanaal",
@@ -634,6 +644,7 @@
       "APP_CONTACT_TITLE": "Kontakt",
       "APP_CONTACT_NEW": "Neuer Kontakt",
       "APP_CONTACT_EDIT": "Kontakt bearbeiten",
+      "APP_CONTACT_BLOCK": "Blokkeer contact",
       "APP_CONTACT_SAVE": "Speichern",
       "APP_CONTACT_CANCEL": "Abbrechen",
       "APP_CONTACT_DELETE": "Löschen",
@@ -701,13 +712,13 @@
 
       "TIMEAGO": [
         "jetzt gerade",
-        ["vor %s Sekunde", "vor %s Sekunden"],
-        ["vor %s Minute", "vor %s Minuten"],
-        ["vor %s Stunde", "vor %s Stunden"],
-        ["vor %s Tag", "vor %s Tagen"],
-        ["vor %s Woche", "vor %s Wochen"],
-        ["vor %s Monat", "vor %s Monaten"],
-        ["vor %s Jahr", "vor %s Jahren"]
+        [ "vor %s Sekunde", "vor %s Sekunden" ],
+        [ "vor %s Minute", "vor %s Minuten" ],
+        [ "vor %s Stunde", "vor %s Stunden" ],
+        [ "vor %s Tag", "vor %s Tagen" ],
+        [ "vor %s Woche", "vor %s Wochen" ],
+        [ "vor %s Monat", "vor %s Monaten" ],
+        [ "vor %s Jahr", "vor %s Jahren" ]
       ]
     },
     "pl_PL": {
@@ -738,6 +749,7 @@
       "APP_CONTACT_TITLE": "dane kontaktowe",
       "APP_CONTACT_NEW": "Nowy kontakt",
       "APP_CONTACT_EDIT": "Zmień kontakt",
+      "APP_CONTACT_BLOCK": "Blokkeer contact",
       "APP_CONTACT_SAVE": "zameldowanie",
       "APP_CONTACT_CANCEL": "przerwać",
       "APP_CONTACT_DELETE": "Usuń",
@@ -802,13 +814,13 @@
 
       "TIMEAGO": [
         "tylko teraz",
-        ["mniej niż minuta"],
-        ["około minuty", "%s minut"],
-        ["około godziny", "około %s godzin"],
-        ["około tygodnia", "%s tydzień"],
-        ["%s week ago", "%s weeks ago"],
-        ["około miesiąca", "%s miesięcy"],
-        ["około roku", "%s lat"]
+        [ "mniej niż minuta" ],
+        [ "około minuty", "%s minut" ],
+        [ "około godziny", "około %s godzin" ],
+        [ "około tygodnia", "%s tydzień" ],
+        [ "%s week ago", "%s weeks ago" ],
+        [ "około miesiąca", "%s miesięcy" ],
+        [ "około roku", "%s lat" ]
       ]
     },
     "es_ES": {
@@ -839,6 +851,7 @@
       "APP_CONTACT_TITLE": "datos de contacto",
       "APP_CONTACT_NEW": "Nuevo contacto",
       "APP_CONTACT_EDIT": "Cambiar el contacto",
+      "APP_CONTACT_BLOCK": "Blokkeer contact",
       "APP_CONTACT_SAVE": "matriculación",
       "APP_CONTACT_CANCEL": "interrumpir",
       "APP_CONTACT_DELETE": "Borrar",
@@ -903,16 +916,16 @@
 
       "TIMEAGO": [
         "ahora",
-        ["hace %s segundo", "hace %s segundos"],
-        ["hace %s minuto", "hace %s minutos"],
-        ["hace %s hora", "hace %s horas"],
-        ["hace %s día", "hace %s días"],
-        ["hace %s semana", "hace %s semanas"],
-        ["hace %s mes", "hace %s meses"],
-        ["hace %s año", "hace %s años"]
+        [ "hace %s segundo", "hace %s segundos" ],
+        [ "hace %s minuto", "hace %s minutos" ],
+        [ "hace %s hora", "hace %s horas" ],
+        [ "hace %s día", "hace %s días" ],
+        [ "hace %s semana", "hace %s semanas" ],
+        [ "hace %s mes", "hace %s meses" ],
+        [ "hace %s año", "hace %s años" ]
       ]
     },
-     "cs_CZ": {
+    "cs_CZ": {
       "NAME": "Čeština",
       "PHONE_WARNING_MESSAGE": "připomínka",
       "PHONE_WARNING_MESSAGE_MESS": "zprávy",
@@ -941,6 +954,7 @@
       "APP_CONTACT_TITLE": "detaily kontaktu",
       "APP_CONTACT_NEW": "Nový kontakt",
       "APP_CONTACT_EDIT": "Změnit kontakt",
+      "APP_CONTACT_BLOCK": "Blokkeer contact",
       "APP_CONTACT_SAVE": "registrace",
       "APP_CONTACT_CANCEL": "zrušit",
       "APP_CONTACT_DELETE": "Smazat",
@@ -1005,13 +1019,13 @@
 
       "TIMEAGO": [
         "nyní",
-        ["před  %s sekundou", "před %s sekundami"],
-        ["před %s minutou", "před %s minutami"],
-        ["před %s hodinou", "před %s hodinami"],
-        ["před %s dnem", "před %s dny"],
-        ["před %s týdnem", "před %s týdny"],
-        ["před %s měsícem", "před %s měsíci"],
-        ["před %s rokem", "před %s lety"]
+        [ "před  %s sekundou", "před %s sekundami" ],
+        [ "před %s minutou", "před %s minutami" ],
+        [ "před %s hodinou", "před %s hodinami" ],
+        [ "před %s dnem", "před %s dny" ],
+        [ "před %s týdnem", "před %s týdny" ],
+        [ "před %s měsícem", "před %s měsíci" ],
+        [ "před %s rokem", "před %s lety" ]
       ]
     }
   }

@@ -158,6 +158,13 @@ export default {
           number: c.number
         }
       }
+    } else {
+      if (this.$route.query.number) {
+        this.contact = {
+          id: -1,
+          number: this.$route.query.number
+        }
+      }
     }
   },
   beforeDestroy: function () {

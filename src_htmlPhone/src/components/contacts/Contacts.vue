@@ -5,7 +5,7 @@
 </template>
 
 <script>
-import { mapGetters } from 'vuex'
+import { mapGetters, mapActions } from 'vuex'
 import { generateColorForStr } from '@/Utils'
 import List from './../List.vue'
 import Modal from '@/components/Modal/index.js'
@@ -30,6 +30,7 @@ export default {
     }
   },
   methods: {
+    ...mapActions(['blockContact']),
     onSelect (contact) {
       if (contact.id === -1) {
         this.$router.push({ name: 'contacts.view', params: { id: contact.id } })
@@ -43,11 +44,14 @@ export default {
       Modal.CreateModal({
         choix: [
           {id: 1, title: this.IntlString('APP_CONTACT_EDIT'), icons: 'fa-circle-o', color: 'orange'},
-          {id: 3, title: 'Annuler', icons: 'fa-undo'}
+          {id: 2, title: this.IntlString('APP_CONTACT_BLOCK'), icons: 'fa-ban', color: 'red'},
+          {id: 3, title: 'Annuleren', icons: 'fa-undo'}
         ]
       }).then(rep => {
         if (rep.id === 1) {
           this.$router.push({path: 'contact/' + contact.id})
+        } else if (rep.id === 2) {
+          this.$phoneAPI.blockContact(contact.id, contact.blocked)
         }
         this.disableList = false
       })

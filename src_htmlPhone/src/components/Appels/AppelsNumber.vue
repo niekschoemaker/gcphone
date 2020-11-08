@@ -122,12 +122,7 @@ export default {
       if (this.useFormatNumberFrance === true) {
         return this.numero
       }
-      const l = this.numero.startsWith('#') ? 4 : 3
-      if (this.numero.length > l) {
-        return this.numero.slice(0, l) + '-' + this.numero.slice(l)
-      } else {
-        return this.numero
-      }
+      return this.numero
     }
   },
 

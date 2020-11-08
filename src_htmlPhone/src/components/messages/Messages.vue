@@ -13,11 +13,11 @@
         >
             <span class='sms_message sms_me'
               @click.stop="onActionMessage(mess)"
-              v-bind:class="{ sms_other : mess.owner === 0}" :style="colorSmsOwner[mess.owner]">
+              v-bind:class="{ sms_other : mess.owner === 0, sms_taken : mess.isTaken === 1 }" :style="colorSmsOwner[mess.owner]">
               <img v-if="isSMSImage(mess)" @click.stop="onActionMessage(mess)" class="sms-img" :src="mess.message">
               <span v-else @click.stop="onActionMessage(mess)" >{{mess.message}}</span>
                 
-                <span @click.stop="onActionMessage(mess)" ><timeago class="sms_time" :since='mess.time' :auto-update="1" :style="colorSmsOwner[mess.owner]"></timeago></span>
+              <span @click.stop="onActionMessage(mess)" ><timeago class="sms_time" :since='mess.time' :auto-update="1" v-bind:class="{ sms_taken : mess.isTaken === 1 }" :style="colorSmsOwner[mess.owner]"></timeago></span>
             </span>
         </div>
     </div>
@@ -124,6 +124,17 @@ export default {
         message
       })
     },
+    isServiceMessage (mess) {
+      const number = this.phoneNumber
+      if (mess.reference == null) {
+        return false
+      }
+      if (number === 'mechanic' || number === 'police' || number === 'taxi' || number === 'militar' || number === 'dsi' || number === 'ambulance' || number === 'kmar') {
+        return true
+      } else {
+        return false
+      }
+    },
     isSMSImage (mess) {
       return /^https?:\/\/.*\.(png|jpg|jpeg|gif)/.test(mess.message)
     },
@@ -158,6 +169,13 @@ export default {
             icons: 'fa-phone'
           }, ...choix]
         }
+        if (this.isServiceMessage(message)) {
+          choix = [{
+            id: 'service',
+            title: this.IntlString('APP_MESSAGE_SERVICE'),
+            icons: 'fa-phone'
+          }, ...choix]
+        }
         if (isSMSImage === true) {
           choix = [{
             id: 'zoom',
@@ -176,6 +194,8 @@ export default {
           this.$nextTick(() => {
             this.onSelectPhoneNumber(data.number)
           })
+        } else if (data.id === 'service') {
+          this.$phoneAPI.setService(message.reference)
         } else if (data.id === 'zoom') {
           this.imgZoom = message.message
         }
@@ -404,6 +424,10 @@ export default {
   max-width: 90%;
   margin-right: 5%;
   margin-top: 10px;
+}
+
+.sms_taken{
+  background-color: #00ac00 !important;
 }
 
 .sms_other{

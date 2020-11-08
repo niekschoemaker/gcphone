@@ -72,6 +72,9 @@ class PhoneAPI {
   async deleteContact (id) {
     return this.post('deleteContact', { id })
   }
+  async blockContact (id) {
+    return this.post('blockContact', { id })
+  }
 
   // == Gestion des appels
   async appelsDeleteHistorique (numero) {
@@ -90,6 +93,9 @@ class PhoneAPI {
   }
   async setGPS (x, y) {
     return this.post('setGPS', {x, y})
+  }
+  async setService (reference) {
+    return this.post('setService', {reference})
   }
   async takePhoto () {
     store.commit('SET_TEMPO_HIDE', true)
@@ -182,6 +188,11 @@ class PhoneAPI {
   }
   onupdateBourse (data) {
     store.commit('SET_BOURSE_INFO', data.bourse)
+  }
+  onupdateReference (data) {
+    const reference = data.reference
+    const source = data.source
+    store.commit('UPDATE_MESSAGE_REFERENCE', { reference, source })
   }
   // Call
   async startCall (numero, extraData = undefined) {

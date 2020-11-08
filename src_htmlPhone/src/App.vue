@@ -80,6 +80,7 @@ export default {
       }
     })
     window.addEventListener('keyup', (event) => {
+      console.log(JSON.stringify(event))
       const keyValid = ['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown', 'Backspace', 'Enter']
       if (keyValid.indexOf(event.key) !== -1) {
         this.$bus.$emit('keyUp' + event.key)

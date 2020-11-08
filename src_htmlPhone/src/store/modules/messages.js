@@ -47,6 +47,15 @@ const mutations = {
   ADD_MESSAGE (state, message) {
     state.messages.push(message)
   },
+  UPDATE_MESSAGE_REFERENCE (state, { reference, source }) {
+    for (let i = 0; i < state.messages.length; i += 1) {
+      if (state.messages[i].reference === reference) {
+        console.log(reference)
+        state.messages[i].isTaken = 1
+        state.messages[i].source = source
+      }
+    }
+  },
   SET_MESSAGES_READ (state, { num }) {
     for (let i = 0; i < state.messages.length; i += 1) {
       if (state.messages[i].transmitter === num && state.messages[i].isRead !== 1) {

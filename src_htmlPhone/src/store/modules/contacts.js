@@ -21,6 +21,9 @@ const actions = {
   },
   resetContact ({ commit }) {
     commit('SET_CONTACTS', [])
+  },
+  blockContact (context, { id }) {
+    PhoneAPI.blockContact(id)
   }
 }
 

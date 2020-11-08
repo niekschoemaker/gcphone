@@ -52,18 +52,25 @@ local ANIMS = {
 
 function newPhoneProp()
 	deletePhone()
-	RequestModel(phoneModel)
-	while not HasModelLoaded(phoneModel) do
-		Citizen.Wait(1)
+
+	if not DoesEntityExist(GetVehiclePedIsUsing(PlayerPedId())) then
+		RequestModel(GetHashKey(phoneModel))
+		while not HasModelLoaded(GetHashKey(phoneModel)) do
+			Citizen.Wait(1)
+		end
+
+		local coords = GetEntityCoords(PlayerPedId())
+		phoneProp = CreateObject(GetHashKey(phoneModel), coords.x, coords.y, coords.z, false, false, true)
+		SetEntityCollision(phoneProp, false, false)
+		local bone = GetPedBoneIndex(myPedId, 28422)
+		AttachEntityToEntity(phoneProp, myPedId, bone, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1, 1, 0, 0, 2, 1)
+		SetModelAsNoLongerNeeded(GetHashKey(phoneModel))
 	end
-	phoneProp = CreateObject(phoneModel, 1.0, 1.0, 1.0, 1, 1, 0)
-	local bone = GetPedBoneIndex(myPedId, 28422)
-	AttachEntityToEntity(phoneProp, myPedId, bone, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1, 1, 0, 0, 2, 1)
 end
 
 function deletePhone ()
 	if phoneProp ~= 0 then
-		Citizen.InvokeNative(0xAE3CBE5BF394C9C9 , Citizen.PointerValueIntInitialized(phoneProp))
+		DeleteEntity(phoneProp)
 		phoneProp = 0
 	end
 end

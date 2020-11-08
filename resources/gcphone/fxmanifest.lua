@@ -1,3 +1,5 @@
+fx_version 'adamant'
+game 'gta5'
 
 ui_page 'html/index.html'
 
@@ -34,6 +36,10 @@ files {
 	'html/static/img/icons_app/twitter.png',
 	
 	'html/static/img/app_bank/logo_mazebank.jpg',
+
+	--- Banking
+	'html/static/img/app_bank/fleeca_tar.png',
+	'html/static/img/app_bank/tarjetas.png',
 
 	'html/static/img/app_tchat/splashtchat.png',
 
