@@ -129,7 +129,7 @@ export default {
       if (mess.reference == null) {
         return false
       }
-      if (number === 'mechanic' || number === 'police' || number === 'taxi' || number === 'militar' || number === 'dsi' || number === 'ambulance' || number === 'kmar') {
+      if (number === 'mechanic' || number === 'police' || number === 'taxi' || number === 'militar' || number === 'dsi' || number === 'ambulance' || number === 'kmar' || number === 'justitie') {
         return true
       } else {
         return false
