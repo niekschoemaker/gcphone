@@ -7,13 +7,13 @@ end
 
 function TchatAddMessage (channel, message, source)
 	local name = GetPlayerName(source)
-	local xPlayer = ESX.GetPlayerFromId(source)
-	local identifier = xPlayer.identifier
+	local identifier = ESX.Player.GetIdentifier(source)
 	print('[gcphone:deepweb] deepweb message sent by: ' .. tostring(name) .. '(' .. identifier.. ')')
 	TriggerEvent('DiscordBot:ToDiscord', 'deepweb', channel ..'\n',
-	'```\n'
-	..xPlayer.name..' [ID: '..source..'] ('..identifier..')\n'
-	..message ..'```', 'user', true, source, false)
+	(
+		'```\n%s [ID: %s] (%s)\n'
+		..message ..'```'
+	):format(ESX.Player.GetName(source), source, identifier), 'user', true, source, false)
 	local Query = "INSERT INTO phone_app_chat (`channel`, `message`, `identifier`) VALUES(@channel, @message, @identifier);"
 	local Query2 = 'SELECT * from phone_app_chat WHERE `id` = @id;'
 	local Parameters = {

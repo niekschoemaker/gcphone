@@ -1,9 +1,15 @@
 --====================================================================================
 -- #Author: Jonathan D @ Gannon
 --====================================================================================
-
-function TwitterGetTweets (accountId, cb)
+function string.isNullOrWhitespace(value)
+	return value and value:match("^%s*$") ~= nil
+end
+ 
+QueryCounter["TwitterGetTweets"] = 0
+QueryCounter["TwitterGetTweetsAccount"] = 0
+function TwitterGetTweets(accountId, cb)
 	if accountId == nil then
+		QueryCounter["TwitterGetTweets"] = QueryCounter["TwitterGetTweets"] + 1
 		MySQL.Async.fetchAll([===[
 		SELECT twitter_tweets.*,
 			twitter_accounts.username as author,
@@ -11,9 +17,11 @@ function TwitterGetTweets (accountId, cb)
 		FROM twitter_tweets
 		LEFT JOIN twitter_accounts
 		ON twitter_tweets.authorId = twitter_accounts.id
+		WHERE old = 0
 		ORDER BY time DESC LIMIT 130
 		]===], {}, cb)
 	else
+		QueryCounter["TwitterGetTweetsAccount"] = QueryCounter["TwitterGetTweetsAccount"] + 1
 		MySQL.Async.fetchAll([===[
 		SELECT twitter_tweets.*,
 			twitter_accounts.username as author,
@@ -24,13 +32,20 @@ function TwitterGetTweets (accountId, cb)
 		ON twitter_tweets.authorId = twitter_accounts.id
 		LEFT JOIN twitter_likes
 		ON twitter_tweets.id = twitter_likes.tweetId AND twitter_likes.authorId = @accountId
+		WHERE old = 0
 		ORDER BY time DESC LIMIT 130
-		]===], { ['@accountId'] = accountId }, cb)
+		]===],
+		{
+			['@accountId'] = accountId
+		}, cb)
 	end
 end
 
+QueryCounter["TwitterGetFavotireTweets"] = 0
+QueryCounter["TwitterGetFavotireTweetsAccount"] = 0
 function TwitterGetFavotireTweets (accountId, cb)
 	if accountId == nil then
+		QueryCounter["TwitterGetFavotireTweets"] = QueryCounter["TwitterGetFavotireTweets"] + 1
 		MySQL.Async.fetchAll([===[
 		SELECT twitter_tweets.*,
 			twitter_accounts.username as author,
@@ -42,6 +57,7 @@ function TwitterGetFavotireTweets (accountId, cb)
 		ORDER BY likes DESC, TIME DESC LIMIT 30
 		]===], {}, cb)
 	else
+		QueryCounter["TwitterGetFavotireTweetsAccount"] = QueryCounter["TwitterGetFavotireTweetsAccount"] + 1
 		MySQL.Async.fetchAll([===[
 		SELECT twitter_tweets.*,
 			twitter_accounts.username as author,
@@ -54,87 +70,239 @@ function TwitterGetFavotireTweets (accountId, cb)
 		ON twitter_tweets.id = twitter_likes.tweetId AND twitter_likes.authorId = @accountId
 		WHERE twitter_tweets.TIME > CURRENT_TIMESTAMP() - INTERVAL '15' DAY
 		ORDER BY likes DESC, TIME DESC LIMIT 30
-		]===], { ['@accountId'] = accountId }, cb)
+		]===],
+		{
+			['@accountId'] = accountId
+		}, cb)
 	end
 end
 
-function getUser(username, password, cb)
-	MySQL.Async.fetchAll("SELECT id, username as author, avatar_url as authorIcon, password FROM twitter_accounts WHERE twitter_accounts.username = @username", {
+QueryCounter["getUser"] = 0
+local passwordCache = {}
+local rateLimit = {}
+function GetUser(source, username, password, cb)
+	if string.isNullOrWhitespace(username) or string.isNullOrWhitespace(password) then
+		print("username or password is null of empty")
+		cb(nil)
+		return
+	end
+
+	local key = username .. password
+	if passwordCache[key] == false then
+		cb(nil)
+		return
+	elseif passwordCache[key] then
+		cb(passwordCache[key])
+		return
+	end
+
+	-- Make sure you can't crash the server by simply spamming Twitter log-ins
+	if IsRateLimited(source, rateLimit, 2) then
+		TriggerClientEvent('esx:showNotification', source, "Probeer het over enkele seconden opnieuw!")
+		cb(nil)
+		return
+	end
+
+	QueryCounter["getUser"] = QueryCounter["getUser"] + 1
+	MySQL.Async.fetchAll(
+		"SELECT id, username as author, avatar_url as authorIcon, password, identifier "
+		.."FROM twitter_accounts "
+		.."WHERE username = @username "
+		.."LIMIT 1",
+	{
 		['@username'] = username,
 	}, function (data)
-		if data[1] and VerifyPasswordHash(password, data[1].password) then
+		if not data[1] then
+			cb(nil)
+			return
+		end
+
+		local identifier = GetPlayerIdentifier(source, 0)
+		if data[1].identifier == identifier then
+			passwordCache[key] = data[1]
+			cb(data[1])
+		elseif VerifyPasswordHash(password, data[1].password) then
+			MySQL.Async.execute(
+				"UPDATE twitter_accounts "
+				.."SET `identifier` = @identifier "
+				.."WHERE `username` = @username "
+				.."LIMIT 1",
+			{
+				['identifier'] = identifier,
+				['username'] = username
+			}, function() end)
+			passwordCache[key] = data[1]
 			cb(data[1])
 		else
+			passwordCache[key] = false
 			cb(nil)
 		end
 	end)
 end
 
-function TwitterPostTweet (username, password, message, sourcePlayer, realUser, cb)
-	getUser(username, password, function (user)
-		if user == nil then
-			if sourcePlayer ~= nil then
-				TwitterShowError(sourcePlayer, 'Twitter Info', 'APP_TWITTER_NOTIF_LOGIN_ERROR')
-			end
-			return
+function GetUserAsync(source, username, password, p)
+	QueryCounter["getUser"] = QueryCounter["getUser"] + 1
+	p = p or promise.new()
+	if string.isNullOrWhitespace(username) or string.isNullOrWhitespace(password) then
+		print("username or password is null of empty")
+		p:resolve(nil)
+		return p
+	end
+
+	local key = username .. password
+	if passwordCache[key] == false then
+		p:resolve(nil)
+		return p
+	elseif passwordCache[key] then
+		p:resolve(passwordCache[key])
+		return p
+	end
+
+	MySQL.Async.fetchAll(
+		"SELECT id, username as author, avatar_url as authorIcon, password, identifier "
+		.."FROM twitter_accounts "
+		.."WHERE twitter_accounts.username = @username "
+		.."LIMIT 1",
+	{
+		['username'] = username,
+	}, function (data)
+		if not data[1] then
+			p:resolve(nil)
+			passwordCache[key] = false
+			return p
 		end
-		MySQL.Async.insert("INSERT INTO twitter_tweets (`authorId`, `message`, `realUser`) VALUES(@authorId, @message, @realUser);", {
-			['@authorId'] = user.id,
-			['@message'] = message,
-			['@realUser'] = realUser
-		}, function (id)
-			MySQL.Async.fetchAll('SELECT * from twitter_tweets WHERE id = @id', {
-				['@id'] = id
-			}, function (tweets)
-				tweet = tweets[1]
-				tweet['author'] = user.author
-				tweet['authorIcon'] = user.authorIcon
-				TriggerClientEvent('gcPhone:twitter_newTweets', -1, tweet)
-				TriggerEvent('gcPhone:twitter_newTweets', tweet)
-			end)
+
+		local identifier = GetPlayerIdentifier(source, 0)
+		if data[1].identifier == identifier then
+			passwordCache[key] = data[1]
+			p:resolve(data[1])
+		elseif VerifyPasswordHash(password, data[1].password) then
+			MySQL.Async.execute(
+				"UPDATE twitter_accounts "
+				.."SET `identifier` = @identifier "
+				.."WHERE `username` = @username "
+				.."LIMIT 1",
+			{
+				['identifier'] = identifier,
+				['username'] = username
+			}, function() end)
+			passwordCache[key] = data[1]
+			p:resolve(data[1])
+		else
+			p:resolve(nil)
+		end
+	end)
+	return p
+end
+
+QueryCounter["TwitterPostTweet"] = 0
+function TwitterPostTweet (username, password, message, source, realUser, cb)
+	local p = GetUserAsync(source, username, password)
+	if not p then
+		if source ~= nil then
+			TwitterShowError(source, 'Twitter Info', 'APP_TWITTER_NOTIF_LOGIN_ERROR')
+		end
+		return
+	end
+	local user = Citizen.Await(p)
+	if not user then
+		if source ~= nil then
+			TwitterShowError(source, 'Twitter Info', 'APP_TWITTER_NOTIF_LOGIN_ERROR')
+		end
+		return
+	end
+
+	QueryCounter["TwitterPostTweet"] = QueryCounter["TwitterPostTweet"] + 1
+	MySQL.Async.insert("INSERT INTO twitter_tweets (`authorId`, `message`, `realUser`) VALUES(@authorId, @message, @realUser);", {
+		['@authorId'] = user.id,
+		['@message'] = message,
+		['@realUser'] = realUser
+	}, function (id)
+		QueryCounter["TwitterPostTweet"] = QueryCounter["TwitterPostTweet"] + 1
+		MySQL.Async.fetchAll(
+			'SELECT * '
+			..'FROM twitter_tweets '
+			..'WHERE id = @id',
+		{
+			['@id'] = id
+		}, function (tweets)
+			local tweet = tweets[1]
+			tweet['author'] = user.author
+			tweet['authorIcon'] = user.authorIcon
+			TriggerClientEvent('gcPhone:twitter_newTweets', -1, tweet, { name = GetPlayerName(source), source = source })
+			TriggerEvent('gcPhone:twitter_newTweets', tweet)
 		end)
 	end)
 end
 
-function TwitterToogleLike (username, password, tweetId, sourcePlayer)
-	getUser(username, password, function (user)
+QueryCounter["TwitterToogleLike"] = 0
+function TwitterToogleLike(username, password, tweetId, source)
+	GetUser(source, username, password, function (user)
 		if user == nil then
-			if sourcePlayer ~= nil then
-				TwitterShowError(sourcePlayer, 'Twitter Info', 'APP_TWITTER_NOTIF_LOGIN_ERROR')
+			if source ~= nil then
+				TwitterShowError(source, 'Twitter Info', 'APP_TWITTER_NOTIF_LOGIN_ERROR')
 			end
 			return
 		end
-		MySQL.Async.fetchAll('SELECT * FROM twitter_tweets WHERE id = @id', {
+		QueryCounter["TwitterToogleLike"] = QueryCounter["TwitterToogleLike"] + 1
+		MySQL.Async.fetchAll(
+			'SELECT * '
+			..'FROM twitter_tweets '
+			..'WHERE id = @id',
+		{
 			['@id'] = tweetId
 		}, function (tweets)
 			if (tweets[1] == nil) then return end
 			local tweet = tweets[1]
-			MySQL.Async.fetchAll('SELECT * FROM twitter_likes WHERE authorId = @authorId AND tweetId = @tweetId', {
+			QueryCounter["TwitterToogleLike"] = QueryCounter["TwitterToogleLike"] + 1
+			MySQL.Async.fetchAll(
+				'SELECT * '
+				..'FROM twitter_likes '
+				..'WHERE authorId = @authorId AND tweetId = @tweetId',
+			{
 				['authorId'] = user.id,
 				['tweetId'] = tweetId
 			}, function (row)
 				if (row[1] == nil) then
-					MySQL.Async.insert('INSERT INTO twitter_likes (`authorId`, `tweetId`) VALUES(@authorId, @tweetId)', {
+					QueryCounter["TwitterToogleLike"] = QueryCounter["TwitterToogleLike"] + 1
+					MySQL.Async.insert(
+						'INSERT INTO twitter_likes (`authorId`, `tweetId`) '
+						..'VALUES(@authorId, @tweetId)',
+					{
 						['authorId'] = user.id,
 						['tweetId'] = tweetId
 					}, function (newrow)
-						MySQL.Async.execute('UPDATE `twitter_tweets` SET `likes`= likes + 1 WHERE id = @id', {
+						QueryCounter["TwitterToogleLike"] = QueryCounter["TwitterToogleLike"] + 1
+						MySQL.Async.execute(
+							'UPDATE `twitter_tweets` '
+							..'SET `likes`= likes + 1 '
+							..'WHERE id = @id',
+						{
 							['@id'] = tweet.id
 						}, function ()
 							TriggerClientEvent('gcPhone:twitter_updateTweetLikes', -1, tweet.id, tweet.likes + 1)
-							TriggerClientEvent('gcPhone:twitter_setTweetLikes', sourcePlayer, tweet.id, true)
+							TriggerClientEvent('gcPhone:twitter_setTweetLikes', source, tweet.id, true)
 							TriggerEvent('gcPhone:twitter_updateTweetLikes', tweet.id, tweet.likes + 1)
 						end)
 					end)
 				else
-					MySQL.Async.execute('DELETE FROM twitter_likes WHERE id = @id', {
+					QueryCounter["TwitterToogleLike"] = QueryCounter["TwitterToogleLike"] + 1
+					MySQL.Async.execute(
+						'DELETE FROM twitter_likes '
+						..'WHERE id = @id',
+					{
 						['@id'] = row[1].id,
 					}, function (newrow)
-						MySQL.Async.execute('UPDATE `twitter_tweets` SET `likes`= likes - 1 WHERE id = @id', {
+						QueryCounter["TwitterToogleLike"] = QueryCounter["TwitterToogleLike"] + 1
+						MySQL.Async.execute(
+							'UPDATE `twitter_tweets` '
+							..'SET `likes`= likes - 1 '
+							..'WHERE id = @id',
+						{
 							['@id'] = tweet.id
 						}, function ()
 							TriggerClientEvent('gcPhone:twitter_updateTweetLikes', -1, tweet.id, tweet.likes - 1)
-							TriggerClientEvent('gcPhone:twitter_setTweetLikes', sourcePlayer, tweet.id, false)
+							TriggerClientEvent('gcPhone:twitter_setTweetLikes', source, tweet.id, false)
 							TriggerEvent('gcPhone:twitter_updateTweetLikes', tweet.id, tweet.likes - 1)
 						end)
 					end)
@@ -144,10 +312,12 @@ function TwitterToogleLike (username, password, tweetId, sourcePlayer)
 	end)
 end
 
+QueryCounter["TwitterCreateAccount"] = 0
 function TwitterCreateAccount(username, password, avatarUrl, cb)
+	QueryCounter["TwitterCreateAccount"] = QueryCounter["TwitterCreateAccount"] + 1
 	MySQL.Async.fetchScalar('SELECT 1 FROM twitter_accounts WHERE `username` = @username', {['@username'] = username}, function(result)
-
 		if result == nil then
+			QueryCounter["TwitterCreateAccount"] = QueryCounter["TwitterCreateAccount"] + 1
 			MySQL.Async.insert('INSERT IGNORE INTO twitter_accounts (`username`, `password`, `avatar_url`) VALUES(@username, @password, @avatarUrl)', {
 				['username'] = username,
 				['password'] = GetPasswordHash(password),
@@ -158,42 +328,44 @@ function TwitterCreateAccount(username, password, avatarUrl, cb)
 end
 -- ALTER TABLE `twitter_accounts`	CHANGE COLUMN `username` `username` VARCHAR(50) NOT NULL DEFAULT '0' COLLATE 'utf8_general_ci';
 
-function TwitterShowError (sourcePlayer, title, message)
-	TriggerClientEvent('gcPhone:twitter_showError', sourcePlayer, message)
+function TwitterShowError (source, title, message)
+	TriggerClientEvent('gcPhone:twitter_showError', source, message)
 end
-function TwitterShowSuccess (sourcePlayer, title, message)
-	TriggerClientEvent('gcPhone:twitter_showSuccess', sourcePlayer, title, message)
+function TwitterShowSuccess (source, title, message)
+	TriggerClientEvent('gcPhone:twitter_showSuccess', source, title, message)
 end
 
 RegisterServerEvent('gcPhone:twitter_login')
 AddEventHandler('gcPhone:twitter_login', function(username, password)
-	local sourcePlayer = tonumber(source)
-	getUser(username, password, function (user)
-		if user == nil then
-			TwitterShowError(sourcePlayer, 'Twitter Info', 'APP_TWITTER_NOTIF_LOGIN_ERROR')
+	local source = tonumber(source)
+	GetUser(source, username, password, function (user)
+		if not user then
+			TwitterShowError(source, 'Twitter Info', 'APP_TWITTER_NOTIF_LOGIN_ERROR')
 		else
-			TwitterShowSuccess(sourcePlayer, 'Twitter Info', 'APP_TWITTER_NOTIF_LOGIN_SUCCESS')
-			TriggerClientEvent('gcPhone:twitter_setAccount', sourcePlayer, username, password, user.authorIcon)
+			TwitterShowSuccess(source, 'Twitter Info', 'APP_TWITTER_NOTIF_LOGIN_SUCCESS')
+			TriggerClientEvent('gcPhone:twitter_setAccount', source, username, password, user.authorIcon)
 		end
 	end)
 end)
 
+QueryCounter["gcPhone:twitter_changePassword"] = 0
 RegisterServerEvent('gcPhone:twitter_changePassword')
 AddEventHandler('gcPhone:twitter_changePassword', function(username, password, newPassword)
-	local sourcePlayer = tonumber(source)
-	getUser(username, password, function (user)
-		if user == nil then
-			TwitterShowError(sourcePlayer, 'Twitter Info', 'APP_TWITTER_NOTIF_NEW_PASSWORD_ERROR')
+	local source = tonumber(source)
+	GetUser(source, username, password, function (user)
+		if not user then
+			TwitterShowError(source, 'Twitter Info', 'APP_TWITTER_NOTIF_NEW_PASSWORD_ERROR')
 		else
+			QueryCounter["gcPhone:twitter_changePassword"] = QueryCounter["gcPhone:twitter_changePassword"] + 1
 			MySQL.Async.execute("UPDATE `twitter_accounts` SET `password`= @newPassword WHERE twitter_accounts.username = @username", {
 				['@username'] = username,
 				['@newPassword'] = GetPasswordHash(newPassword)
 			}, function (result)
 				if (result == 1) then
-					TriggerClientEvent('gcPhone:twitter_setAccount', sourcePlayer, username, newPassword, user.authorIcon)
-					TwitterShowSuccess(sourcePlayer, 'Twitter Info', 'APP_TWITTER_NOTIF_NEW_PASSWORD_SUCCESS')
+					TriggerClientEvent('gcPhone:twitter_setAccount', source, username, newPassword, user.authorIcon)
+					TwitterShowSuccess(source, 'Twitter Info', 'APP_TWITTER_NOTIF_NEW_PASSWORD_SUCCESS')
 				else
-					TwitterShowError(sourcePlayer, 'Twitter Info', 'APP_TWITTER_NOTIF_NEW_PASSWORD_ERROR')
+					TwitterShowError(source, 'Twitter Info', 'APP_TWITTER_NOTIF_NEW_PASSWORD_ERROR')
 				end
 			end)
 		end
@@ -203,47 +375,54 @@ end)
 
 RegisterServerEvent('gcPhone:twitter_createAccount')
 AddEventHandler('gcPhone:twitter_createAccount', function(username, password, avatarUrl)
-	local sourcePlayer = tonumber(source)
+	local source = tonumber(source)
+	if not avatarUrl then
+		avatarUrl = nil
+	end
+	if string.isNullOrWhitespace(username) or string.isNullOrWhitespace(password) then
+		TwitterShowError(source, 'Twitter Info', 'APP_TWITTER_NOTIF_ACCOUNT_CREATE_ERROR')
+		return
+	end
 	TwitterCreateAccount(username, password, avatarUrl, function (id)
 		if (id ~= 0) then
-			TriggerClientEvent('gcPhone:twitter_setAccount', sourcePlayer, username, password, avatarUrl)
-			TwitterShowSuccess(sourcePlayer, 'Twitter Info', 'APP_TWITTER_NOTIF_ACCOUNT_CREATE_SUCCESS')
+			TriggerClientEvent('gcPhone:twitter_setAccount', source, username, password, avatarUrl)
+			TwitterShowSuccess(source, 'Twitter Info', 'APP_TWITTER_NOTIF_ACCOUNT_CREATE_SUCCESS')
 		else
-			TwitterShowError(sourcePlayer, 'Twitter Info', 'APP_TWITTER_NOTIF_ACCOUNT_CREATE_ERROR')
+			TwitterShowError(source, 'Twitter Info', 'APP_TWITTER_NOTIF_ACCOUNT_CREATE_ERROR')
 		end
 	end)
 end)
 
 RegisterServerEvent('gcPhone:twitter_getTweets')
 AddEventHandler('gcPhone:twitter_getTweets', function(username, password)
-	local sourcePlayer = tonumber(source)
-	if username ~= nil and username ~= "" and password ~= nil and password ~= "" then
-		getUser(username, password, function (user)
+	local source = tonumber(source)
+	if not string.isNullOrWhitespace(username) and not string.isNullOrWhitespace(password) then
+		GetUser(source, username, password, function (user)
 			local accountId = user and user.id
 			TwitterGetTweets(accountId, function (tweets)
-				TriggerClientEvent('gcPhone:twitter_getTweets', sourcePlayer, tweets)
+				TriggerClientEvent('gcPhone:twitter_getTweets', source, tweets)
 			end)
 		end)
 	else
 		TwitterGetTweets(nil, function (tweets)
-			TriggerClientEvent('gcPhone:twitter_getTweets', sourcePlayer, tweets)
+			TriggerClientEvent('gcPhone:twitter_getTweets', source, tweets)
 		end)
 	end
 end)
 
 RegisterServerEvent('gcPhone:twitter_getFavoriteTweets')
 AddEventHandler('gcPhone:twitter_getFavoriteTweets', function(username, password)
-	local sourcePlayer = tonumber(source)
-	if username ~= nil and username ~= "" and password ~= nil and password ~= "" then
-		getUser(username, password, function (user)
+	local source = tonumber(source)
+	if not string.isNullOrWhitespace(username) and not string.isNullOrWhitespace(password) then
+		GetUser(source, username, password, function (user)
 			local accountId = user and user.id
 			TwitterGetFavotireTweets(accountId, function (tweets)
-				TriggerClientEvent('gcPhone:twitter_getFavoriteTweets', sourcePlayer, tweets)
+				TriggerClientEvent('gcPhone:twitter_getFavoriteTweets', source, tweets)
 			end)
 		end)
 	else
 		TwitterGetFavotireTweets(nil, function (tweets)
-			TriggerClientEvent('gcPhone:twitter_getFavoriteTweets', sourcePlayer, tweets)
+			TriggerClientEvent('gcPhone:twitter_getFavoriteTweets', source, tweets)
 		end)
 	end
 end)
@@ -256,40 +435,40 @@ AddEventHandler('gcPhone:twitter_postTweets', function(username, password, messa
 	end
 
 	if key ~= `gcPhone:twitter_postTweets` then
-		local xPlayer = ESX.GetPlayerFromId(source)
-		local hook = "gcPhone:twitter_postTweets"
-		print('['..hook..'] key mismatch')
-		TriggerEvent("AntiCheese:CustomServerFlag", source, "Key Mismatch", "hook: "..hook..".\nkey: "..tostring(key))
-		TriggerEvent('DiscordBot:ToDiscord', 'exploit', 'Key mismatch! \n', '```\n'..xPlayer.name .. ' [ID: ' .. source .. '] \nPossible Injection: key mismatch in: '..hook..'\nkey was: '..tostring(key)..'\n```', 'user', true, source, false)
+		TriggerEvent("AntiCheese:KeyFlag", source, { hook = "gcPhone:twitter_postTweets", key = key, resource = GetCurrentResourceName() })
 		return
 	end
 
-	local sourcePlayer = tonumber(source)
+	local source = tonumber(source)
 	local srcIdentifier = getPlayerID(source)
-	TwitterPostTweet(username, password, message, sourcePlayer, srcIdentifier)
+	TwitterPostTweet(username, password, message, source, srcIdentifier)
 end)
 
 RegisterServerEvent('gcPhone:twitter_toogleLikeTweet')
 AddEventHandler('gcPhone:twitter_toogleLikeTweet', function(username, password, tweetId)
-	local sourcePlayer = tonumber(source)
-	TwitterToogleLike(username, password, tweetId, sourcePlayer)
+	local source = tonumber(source)
+	TwitterToogleLike(username, password, tweetId, source)
 end)
 
-
+QueryCounter["gcPhone:twitter_setAvatarUrl"] = 0
 RegisterServerEvent('gcPhone:twitter_setAvatarUrl')
 AddEventHandler('gcPhone:twitter_setAvatarUrl', function(username, password, avatarUrl)
-	local sourcePlayer = tonumber(source)
-	MySQL.Async.execute("UPDATE `twitter_accounts` SET `avatar_url`= @avatarUrl WHERE twitter_accounts.username = @username AND twitter_accounts.password = @password", {
-		['@username'] = username,
-		['@password'] = password,
-		['@avatarUrl'] = avatarUrl
-	}, function (result)
-		if (result == 1) then
-			TriggerClientEvent('gcPhone:twitter_setAccount', sourcePlayer, username, password, avatarUrl)
-			TwitterShowSuccess(sourcePlayer, 'Twitter Info', 'APP_TWITTER_NOTIF_AVATAR_SUCCESS')
-		else
-			TwitterShowError(sourcePlayer, 'Twitter Info', 'APP_TWITTER_NOTIF_LOGIN_ERROR')
-		end
+	local source = tonumber(source)
+	GetUser(source, username, password, function (user)
+		local accountId = user and user.id
+		QueryCounter["gcPhone:twitter_setAvatarUrl"] = QueryCounter["gcPhone:twitter_setAvatarUrl"] + 1
+		MySQL.Async.execute("UPDATE `twitter_accounts` SET `avatar_url`= @avatarUrl WHERE twitter_accounts.id = @id AND twitter_accounts.username = @username", {
+			['id'] = accountId,
+			['username'] = username,
+			['avatarUrl'] = avatarUrl
+		}, function (result)
+			if (result == 1) then
+				TriggerClientEvent('gcPhone:twitter_setAccount', source, username, password, avatarUrl)
+				TwitterShowSuccess(source, 'Twitter Info', 'APP_TWITTER_NOTIF_AVATAR_SUCCESS')
+			else
+				TwitterShowError(source, 'Twitter Info', 'APP_TWITTER_NOTIF_LOGIN_ERROR')
+			end
+		end)
 	end)
 end)
 

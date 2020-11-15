@@ -248,7 +248,7 @@ AddEventHandler("gcPhone:receiveMessage", function(message)
 		if ShowNumberNotification == true then
 			text = '~o~Nieuw bericht van ~y~' .. message.transmitter
 			if message.distress then
-				text = '~r~NOODSIGNAAL VAN ~y~' .. message.transmitter
+				text = '~r~NOODSIGNAAL VAN ~y~' .. (message.name or message.transmitter)
 			end
 			for _,contact in pairs(contacts) do
 				if contact.number == message.transmitter then
