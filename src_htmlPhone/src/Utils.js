@@ -28,7 +28,7 @@ export function groupBy (xs, key) {
 }
 
 export function generateColorForStr (str) {
-  if (str.length === 0 || str[0] === '#') {
+  if (str == null || str.length === 0 || str[0] === '#') {
     return '#D32F2F'
   }
   const h = str.split('').reduce((prevHash, currVal) =>

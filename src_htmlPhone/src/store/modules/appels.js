@@ -73,6 +73,9 @@ const mutations = {
   SET_APPELS_HISTORIQUE (state, appelsHistorique) {
     state.appelsHistorique = appelsHistorique
   },
+  ADD_APPELS_HISTORIQUE (state, call) {
+    state.appelsHistorique.push(call)
+  },
   SET_APPELS_INFO_IF_EMPTY (state, appelsInfo) {
     if (state.appelsInfo === null) {
       state.appelsInfo = appelsInfo

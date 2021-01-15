@@ -183,6 +183,9 @@ class PhoneAPI {
   onhistoriqueCall (data) {
     store.commit('SET_APPELS_HISTORIQUE', data.historique)
   }
+  onaddCallToHistory (data) {
+    store.commit('ADD_APPELS_HISTORIQUE', data.call)
+  }
   onupdateBankbalance (data) {
     store.commit('SET_BANK_AMONT', data.banking)
   }
