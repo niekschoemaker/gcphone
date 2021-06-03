@@ -6,7 +6,7 @@
     </div>
 
     <textarea ref="copyTextarea" class="copyTextarea"/>
-    
+
     <div id='sms_list' @contextmenu.prevent="showOptions">
         <div class="sms" v-bind:class="{ select: key === selectMessage}" v-for='(mess, key) in messagesList' v-bind:key="mess.id"
           @click.stop="onActionMessage(mess)"
@@ -16,7 +16,7 @@
               v-bind:class="{ sms_other : mess.owner === 0, sms_taken : mess.isTaken === 1 }" :style="colorSmsOwner[mess.owner]">
               <img v-if="isSMSImage(mess)" @click.stop="onActionMessage(mess)" class="sms-img" :src="mess.message">
               <span v-else @click.stop="onActionMessage(mess)" >{{mess.message}}</span>
-                
+
               <span @click.stop="onActionMessage(mess)" ><timeago class="sms_time" :since='mess.time' :auto-update="1" v-bind:class="{ sms_taken : mess.isTaken === 1 }" :style="colorSmsOwner[mess.owner]"></timeago></span>
             </span>
         </div>
@@ -229,6 +229,13 @@ export default {
             icons: 'fa-phone'
           }
         ]
+        if (reference) {
+          choix.push({
+            id: 'call-anonymous',
+            title: this.IntlString('APP_MESSAGE_MESS_CALL_ANONYMOUS'),
+            icons: 'fa-mask'
+          })
+        }
         choix.push({
           id: 'copy',
           title: this.IntlString('APP_MESSAGE_MESS_COPY'),
@@ -246,7 +253,10 @@ export default {
           if (reference) {
             this.$phoneAPI.setService(reference)
           }
-        } else if (data.id === 'call') {
+        } else if (data.id.startsWith('call')) {
+          if (data.id === 'call-anonymous') {
+            number = '#' + number
+          }
           this.startCall({ numero: number })
           if (reference) {
             this.$phoneAPI.setService(reference)
@@ -386,7 +396,7 @@ export default {
     left: 0;
     right: 0;
     height: calc(100% - 20px);
-    background-color: #DDD;    
+    background-color: #DDD;
 }
 #sms_contact{
     background-color: #4CAF50;
@@ -509,7 +519,7 @@ export default {
     margin-right: 10px;
 }
 .sms_send svg{
-    margin: 10px; 
+    margin: 10px;
     width: 36px;
     height: 36px;
     fill: #C0C0C0;
