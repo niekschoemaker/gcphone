@@ -3,7 +3,7 @@
     <PhoneTitle :title="'9 GAG (' + currentSelectPost + ')'" backgroundColor="#000" @back="quit"/>  
     <div class='phone_content' @click="onClick">
       <div class="post" v-if="currentPost !== undefined">
-        <h1 class="post-title">{{ currentPost.title }}</h1>
+        <h1 class="post-title" v-html="currentPost.title"></h1>
         <div class="post-content">
           <video class="post-video" ref="video" v-if="currentPost.images.image460svwm !== undefined" autoplay loop :src="currentPost.images.image460svwm.url">
           </video>

@@ -100,9 +100,6 @@ export default {
       }
     },
     save () {
-      if (this.contact.number == null) {
-        history.back()
-      }
       if (this.id === -1 || this.id === 0) {
         this.addContact({
           display: this.contact.display,

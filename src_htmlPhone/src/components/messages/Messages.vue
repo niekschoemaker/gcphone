@@ -46,6 +46,16 @@ import { generateColorForStr, getBestFontColor } from './../../Utils'
 import PhoneTitle from './../PhoneTitle'
 import Modal from '@/components/Modal/index.js'
 
+const serviceJobs = {
+  'mechanic': true,
+  'police': true,
+  'taxi': true,
+  'dsi': true,
+  'ambulance': true,
+  'kmar': true,
+  'justitie': true
+}
+
 export default {
   data () {
     return {
@@ -129,18 +139,13 @@ export default {
       if (mess.reference == null) {
         return false
       }
-      if (number === 'mechanic' || number === 'police' || number === 'taxi' || number === 'militar' || number === 'dsi' || number === 'ambulance' || number === 'kmar' || number === 'justitie') {
-        return true
-      } else {
-        return false
-      }
+      return serviceJobs[number] || false
     },
     isSMSImage (mess) {
       return /^https?:\/\/.*\.(png|jpg|jpeg|gif)/.test(mess.message)
     },
     async onActionMessage (message) {
       try {
-        // let message = this.messagesList[this.selectMessage]
         let isGPS = /(-?\d+(\.\d+)?), (-?\d+(\.\d+)?)/.test(message.message)
         let hasNumber = /#([0-9]+)/.test(message.message)
         let isSMSImage = this.isSMSImage(message)
@@ -192,7 +197,11 @@ export default {
           this.$phoneAPI.setGPS(val[1], val[3])
         } else if (data.id === 'num') {
           this.$nextTick(() => {
-            this.onSelectPhoneNumber(data.number)
+            let reference = false
+            if (this.isServiceMessage(message)) {
+              reference = message.reference
+            }
+            this.onSelectPhoneNumber(data.number, reference)
           })
         } else if (data.id === 'service') {
           this.$phoneAPI.setService(message.reference)
@@ -205,7 +214,7 @@ export default {
         this.selectMessage = -1
       }
     },
-    async onSelectPhoneNumber (number) {
+    async onSelectPhoneNumber (number, reference) {
       try {
         this.ignoreControls = true
         let choix = [
@@ -220,13 +229,11 @@ export default {
             icons: 'fa-phone'
           }
         ]
-        // if (this.useMouse === true) {
         choix.push({
           id: 'copy',
           title: this.IntlString('APP_MESSAGE_MESS_COPY'),
           icons: 'fa-copy'
         })
-        // }
         choix.push({
           id: -1,
           title: this.IntlString('CANCEL'),
@@ -236,8 +243,14 @@ export default {
         if (data.id === 'sms') {
           this.phoneNumber = number
           this.display = undefined
+          if (reference) {
+            this.$phoneAPI.setService(reference)
+          }
         } else if (data.id === 'call') {
           this.startCall({ numero: number })
+          if (reference) {
+            this.$phoneAPI.setService(reference)
+          }
         } else if (data.id === 'copy') {
           try {
             const $copyTextarea = this.$refs.copyTextarea
